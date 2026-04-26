@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Budget Planner</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="header">
+  &#128200; Budget Planner
+</div>
+
+<div class="main">
+
+  <!-- INCOME -->
+  <div class="card">
+    <p class="card-title">income</p>
+    <div class="income-row">
+      <div class="income-input-wrap">
+        <label>Monthly income (&#8377;)</label>
+        <form method="POST" action="/income" style="display:flex;gap:10px;align-items:center;">
+          <input type="number" name="income" value="{{ income }}" placeholder="e.g. 50000">
+          <button type="submit" class="btn btn-primary">Update</button>
+        </form>
+      </div>
+      <div class="income-display">&#8377;{{ income | int }}</div>
+    </div>
+    <div class="grid-3" style="margin-top:16px;">
+      <div class="metric-tile">
+        <div class="m-label">Need (50%)</div>
+        <div class="m-val">&#8377;{{ (income * 0.5) | int }}</div>
+      </div>
+      <div class="metric-tile">
+        <div class="m-label">Want (30%)</div>
+        <div class="m-val">&#8377;{{ (income * 0.3) | int }}</div>
+      </div>
+      <div class="metric-tile">
+        <div class="m-label">Save (20%)</div>
+        <div class="m-val">&#8377;{{ (income * 0.2) | int }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SET BUDGETS -->
+  <div class="card">
+    <p class="card-title">set budgets</p>
+    <form method="POST" action="/budget">
+      <div class="grid-3">
+        <div>
+          <label>Need (&#8377;)</label>
+          <input type="number" name="need" value="{{ summary.Need.budget | int }}" placeholder="e.g. 25000">
+        </div>
+        <div>
+          <label>Want (&#8377;)</label>
+          <input type="number" name="want" value="{{ summary.Want.budget | int }}" placeholder="e.g. 15000">
+        </div>
+        <div>
+          <label>Save (&#8377;)</label>
+          <input type="number" name="save" value="{{ summary.Save.budget | int }}" placeholder="e.g. 10000">
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary" style="margin-top:14px;">Save Budgets</button>
+    </form>
+  </div>
+
+  <!-- ADD EXPENSE -->
+  <div class="card">
+    <p class="card-title">add expense</p>
+    <form method="POST" action="/add">
+      <div class="add-row">
+        <div>
+          <label>Expense name</label>
+          <input type="text" name="name" placeholder="e.g. Rent, Netflix...">
+        </div>
+        <div>
+          <label>Amount (&#8377;)</label>
+          <input type="number" name="amt" placeholder="e.g. 5000">
+        </div>
+        <div>
+          <label>Category</label>
+          <select name="cat">
+            <option value="Need">Need</option>
+            <option value="Want">Want</option>
+            <option value="Save">Save</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:flex-end;">
+          <button type="submit" class="btn btn-primary">+ Add</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- BUDGET TRACKER -->
+  <div class="card">
+    <p class="card-title">budget tracker</p>
+    <div class="grid-3">
+      {% for cat, d in summary.items() %}
+      {% set over = d.spent > d.budget and d.budget > 0 %}
+      <div class="tracker-cat">
+        <div class="cat-name" style="color: {{ '#f87171' if over else ('#1D9E75' if cat == 'Need' else '#38bdf8' if cat == 'Want' else '#f59e0b') }};">
+          {{ cat }}
+        </div>
+        <div class="cat-sub">{{ d.percent }}% of budget used</div>
+        <div class="prog-bg">
+          <div class="prog-fg" style="width: {{ [d.percent, 100] | min }}%; background: {{ '#f87171' if over else ('#1D9E75' if cat == 'Need' else '#38bdf8' if cat == 'Want' else '#f59e0b') }};"></div>
+        </div>
+        <div class="cat-nums">
+          <div>Spent: <span style="color:{{ '#f87171' if over else '#e2e8f0' }};">&#8377;{{ d.spent | int }}</span></div>
+          <div>
+            {% if over %}
+              <span class="over">Over: &#8377;{{ (d.spent - d.budget) | int }}</span>
+            {% else %}
+              Left: <span>&#8377;{{ [d.remaining, 0] | max | int }}</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- EXPENSE LIST -->
+  <div class="card">
+    <p class="card-title">expense list</p>
+    {% for cat in ['Need', 'Want', 'Save'] %}
+    <div style="margin-bottom: 20px;">
+      <div class="exp-cat-header" style="color: {{ '#1D9E75' if cat == 'Need' else '#38bdf8' if cat == 'Want' else '#f59e0b' }};">
+        {{ cat }}
+      </div>
+      {% if expenses[cat] %}
+        {% for item in expenses[cat] %}
+        <div class="exp-item">
+          <span class="exp-name">{{ item[0] }}</span>
+          <div class="exp-right">
+            <span class="exp-amt">&#8377;{{ item[1] | int }}</span>
+            <form method="POST" action="/delete" style="display:inline;">
+              <input type="hidden" name="cat" value="{{ cat }}">
+              <input type="hidden" name="idx" value="{{ loop.index0 }}">
+              <button type="submit" class="btn-sm">remove</button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <p class="exp-list-empty">No expenses in this category yet.</p>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+
+</body>
+</html>
